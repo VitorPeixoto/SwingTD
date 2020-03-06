@@ -1,15 +1,23 @@
 package swingtd;
 
+import java.awt.Color;
 import swingtd.entity.Enemy;
 import swingtd.entity.EnemyGenerator;
 import java.awt.Graphics;
 import java.awt.Image;
+import java.awt.Point;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import javafx.util.Pair;
-import javax.imageio.ImageIO;
 import javax.swing.JPanel;
+import javax.swing.plaf.basic.BasicSplitPaneUI;
+import swingtd.entity.Entity;
+import swingtd.entity.Tower;
 import swingtd.images.ImageLoader;
 import static swingtd.util.Const.TILE_SIZE;
 /**
@@ -22,7 +30,10 @@ public class Map extends JPanel {
     private List<Character> movements;
     private Pair<Integer, Integer> start, end;
     private final Image bg, path;
-    private List<Enemy> enemies;
+    private List<Entity> entities;
+    private Point cursor;
+    
+    private Tower selectedTower = null;
     
     public Map(int width, int height, char[][] tiles, List<Character> movements, Pair<Integer, Integer> start, Pair<Integer, Integer> end) throws IOException {
         this.width = width;
@@ -31,13 +42,64 @@ public class Map extends JPanel {
         this.movements = movements;
         this.start = start;
         this.end = end;
+        this.cursor = new Point();
         
-        enemies = new ArrayList<>();
+        /*enemies = new ArrayList<>();
+        towers  = new ArrayList<>();
         for(int i = 0; i < 30; i++)
-            enemies.add(EnemyGenerator.generateRandomEnemy(start.getKey(), start.getValue()));
+            enemies.add(EnemyGenerator.generateRandomEnemy(start.getKey(), start.getValue()));*/
+        
+        entities = new ArrayList<>();
+        
+        Enemy.MOVEMENTS = movements;
+        entities.add(EnemyGenerator.generateEnemy(start.getKey(), start.getValue(), Color.red));
+        entities.add(EnemyGenerator.generateEnemy(start.getKey(), start.getValue(), Color.green));
+        entities.add(EnemyGenerator.generateEnemy(start.getKey(), start.getValue(), Color.blue));
+        entities.add(EnemyGenerator.generateEnemy(start.getKey(), start.getValue(), Color.white));
+        entities.add(EnemyGenerator.generateEnemy(start.getKey(), start.getValue(), Color.black));
+        
+        entities.add(EnemyGenerator.generateEnemy(start.getKey(), start.getValue(), new Color(0.5f, 0.5f, 0.5f, 0.5f)));
         
         bg = ImageLoader.load("bg.png");
         path = ImageLoader.load("path.png");
+        
+        this.addMouseListener(new MouseListener() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int x = e.getX()/TILE_SIZE;
+                int y = e.getY()/TILE_SIZE;
+                if(selectedTower != null && tiles[y][x] == '.') {
+                    selectedTower.setX(x);
+                    selectedTower.setY(y);
+                    entities.add(selectedTower);
+                    tiles[y][x] = 'T';
+                }
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {}
+
+            @Override
+            public void mouseReleased(MouseEvent e) {}
+
+            @Override
+            public void mouseEntered(MouseEvent e) {}
+
+            @Override
+            public void mouseExited(MouseEvent e) {}
+        });
+        
+        this.addMouseMotionListener(new MouseMotionListener() {
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            }
+
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                cursor = e.getPoint();
+            }
+        });
         
         this.setBounds(0, 0, width*TILE_SIZE, height*TILE_SIZE);
     }
@@ -51,6 +113,7 @@ public class Map extends JPanel {
             for(int y = 0; y < height; y++) {
                 switch(tiles[y][x]) {
                     case '.':
+                    case 'T':
                         image = bg;
                         break;
                     case '#':
@@ -63,15 +126,33 @@ public class Map extends JPanel {
             }
         }
         
-        for(Enemy enemy : enemies) {
-            g.setColor(enemy.getColor());
-            g.fillOval((int)(enemy.getX()*TILE_SIZE), (int)(enemy.getY()*TILE_SIZE), TILE_SIZE, TILE_SIZE);
-        }
+        entities.forEach((Entity entity) -> entity.render(g));
         
+        if(selectedTower != null) {
+            selectedTower.render(g);
+        }
     }
     
     public void update() {
-        enemies.forEach( (Enemy enemy) -> enemy.move(movements));
+        if(Keyboard.KEYS[KeyEvent.VK_1] && selectedTower == null) {
+            selectedTower = new Tower(2, 1, Color.RED);
+        }
+        else if(Keyboard.KEYS[KeyEvent.VK_2] && selectedTower == null) {
+            selectedTower = new Tower(2, 1, Color.GREEN);
+        }
+        else if(Keyboard.KEYS[KeyEvent.VK_3] && selectedTower == null) {
+            selectedTower = new Tower(2, 1, Color.BLUE);
+        }
+        else if(!Keyboard.KEYS[KeyEvent.VK_1] && !Keyboard.KEYS[KeyEvent.VK_2] && !Keyboard.KEYS[KeyEvent.VK_3]) {
+            selectedTower = null;
+        }
+        
+        if(selectedTower != null) {
+            selectedTower.setX((int)cursor.getX()/TILE_SIZE);
+            selectedTower.setY((int)cursor.getY()/TILE_SIZE);
+        }
+        
+        entities.forEach((Entity entity) -> entity.update());
     }
 
 }

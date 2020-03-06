@@ -116,6 +116,4 @@ public class Vector2f {
     public Vector2f copyOf() {
         return new Vector2f(this.getX(), this.getY());
     }
-    
-    
 }
